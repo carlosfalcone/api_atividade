@@ -1,11 +1,31 @@
 from flask import Flask, request
 from flask_restful import Resource, Api
-from models import Pessoas, Atividades
+from models import Pessoas, Atividades, Usuarios
+from flask_httpauth import HTTPBasicAuth
 
+auth = HTTPBasicAuth()
 app = Flask(__name__)
 api = Api(app)
 
+# USUARIOS = {
+#     'carlos': '123',
+#     'falcone': '321'
+# }
+# @auth.verify_password
+# def verificacao(login, senha):
+#     if not (login, senha):
+#         return False
+#     return USUARIOS.get(login) == senha
+
+
+@auth.verify_password
+def verificacao(login, senha):
+    if not (login, senha):
+        return False
+    return Usuarios.query.filter_by(login=login, senha=senha).first()
+
 class Pessoa(Resource):
+    @auth.login_required
     def get(self, nome):
         pessoa = Pessoas.query.filter_by(nome=nome).first()
         try:
@@ -35,6 +55,7 @@ class Pessoa(Resource):
         return {'status': 'sucesso', 'mensagem': f'Pessoa excluida {pessoa} com sucesso'}
 
 class ListaPessoas(Resource):
+    @auth.login_required
     def get(self):  # Lista todas as pessoas do banco de dados
         pessoas = Pessoas.query.all()
         response = [{'id': p.id, 'nome': p.nome, 'idade': p.idade} for p in pessoas]
@@ -46,6 +67,7 @@ class ListaPessoas(Resource):
         pessoa.save()
         # response = [{'id': p.id, 'nome': p.nome, 'idade': p.idade} for p in pessoas]
         return ListaPessoas.get(self)
+
 
 class ListaAtividades(Resource):
     def get(self):  # Lista todas as atividades do banco de dados
